@@ -9,6 +9,6 @@
 {applications, [kernel,stdlib]},
 {mod, {bully,[]}},
 {start_phases, []},
-{git_path,"https://github.com/joq62/bully_election.git"},
+{git_path,"https://github.com/joq62/bully.git"},
 {env,[]}
 ]}.

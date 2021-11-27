@@ -78,8 +78,10 @@ start_election()->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
+    io:format("bully 1 ~p~n",[{?MODULE,?LINE}]),
     bully:start_election(),
     timer:sleep(?WAIT_FOR_ELECTION_RESPONSE_TIMEOUT+100),
+    io:format("bully 2 ~p~n",[{?MODULE,?LINE}]),
     {ok, #state{nodes = [],
 		coordinator_node = node(), 
 		pid_timeout=no_pid}}.
@@ -206,9 +208,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 start_election(State) ->
-  %  io:format("Election started by Node ~p~n",[{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
-    rpc:cast(node(),db_logger,create,["log","election started",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
-    {ok,Nodes}=application:get_env(nodes),
+    io:format("Election started by Node ~p~n",[{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
+%    rpc:cast(node(),db_logger,create,["log","election started",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
+    {ok,Nodes}=application:get_env(bully,nodes),
     NodesHigherId=nodes_with_higher_ids(Nodes),
     [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesHigherId],
     PidTimeout=spawn(fun()->election_timeout() end),
@@ -221,7 +223,7 @@ start_election(State) ->
 %% --------------------------------------------------------------------
 win_election( State) ->
  %   io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
-    rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
     {ok,Nodes}=application:get_env(nodes),
     NodesLowerId=nodes_with_lower_ids(Nodes),
     [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
@@ -235,7 +237,7 @@ set_coordinator(State, CoordinatorNode) ->
     monitor_node(State#state.coordinator_node, false),
     monitor_node(CoordinatorNode, true),
     if 
-	erlang:is_pid(tate#state.pid_timeout)=:=true->
+	erlang:is_pid(State#state.pid_timeout)=:=true->
 	    State#state.pid_timeout!kill;
 	true->
 	    ok

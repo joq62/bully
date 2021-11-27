@@ -103,6 +103,7 @@ start()->
 %% --------------------------------------------------------------------
 t1()->
     [N1,N2,N3]=nodes(),
+    [rpc:cast(Node,application,set_env,[[{bully,[{nodes,[N1,N2,N3]}]}]])||Node<-nodes()],
     [rpc:cast(Node,bully,boot,[])||Node<-nodes()],
 
     timer:sleep(1000),
@@ -117,6 +118,7 @@ t1()->
     Cookie=atom_to_list(erlang:get_cookie()),
     Args="-pa ebin -setcookie "++Cookie,
     [{ok,N3}]=[slave:start(HostId,NodeName,Args)||NodeName<-["c"]],
+    rpc:cast(N3,application,set_env,[[{bully,[{nodes,[N1,N2,N3]}]}]]),
     rpc:cast(N3,bully,boot,[]),
     timer:sleep(1000),
     io:format("Leader = ~p~n",[rpc:call(N1,bully,who_is_leader,[],1000)]),
@@ -134,46 +136,46 @@ pass1()->
     Nodes=nodes(),
     [N1,N2,N3]=Nodes,
    % io:format("Nodes ~p~n",[Nodes]),
-    [{'a@joq62-X550CA',{error,[mnesia_not_started]}},
-     {'b@joq62-X550CA',{error,[mnesia_not_started]}},
-     {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+    [{'a@c100',{error,[mnesia_not_started]}},
+     {'b@c100',{error,[mnesia_not_started]}},
+     {'c@c100',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
 
     % Start first node
  %   ok=rpc:call(N1,application,start,[dbase_dist],3000),
     ok=rpc:call(N1,dbase_dist,boot,[],3000),
-    [{'a@joq62-X550CA',ok},
-     {'b@joq62-X550CA',{error,[mnesia_not_started]}},
-     {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+    [{'a@c100',ok},
+     {'b@c100',{error,[mnesia_not_started]}},
+     {'c@c100',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
    
-    true=rpc:call('a@joq62-X550CA',db_lock,is_leader,[controller_lock,'a@joq62-X550CA'],2000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N1,db_lock,read_all_info,[],5000),
+    true=rpc:call('a@c100',db_lock,is_leader,[controller_lock,'a@c100'],2000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N1,db_lock,read_all_info,[],5000),
  % Start second node
 %    ok=rpc:call(N2,application,start,[dbase_dist],3000),
     ok=rpc:call(N2,dbase_dist,boot,[],3000),
-    [{'a@joq62-X550CA',ok},
-     {'b@joq62-X550CA',ok},
-     {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+    [{'a@c100',ok},
+     {'b@c100',ok},
+     {'c@c100',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
    
-    true=rpc:call(N2,db_lock,is_leader,[controller_lock,'a@joq62-X550CA'],2000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
+    true=rpc:call(N2,db_lock,is_leader,[controller_lock,'a@c100'],2000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
  % Start third node
   %  ok=rpc:call(N3,application,start,[dbase_dist],3000),
     ok=rpc:call(N3,dbase_dist,boot,[],3000),
-    [{'a@joq62-X550CA',ok},
-     {'b@joq62-X550CA',ok},
-     {'c@joq62-X550CA',ok}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+    [{'a@c100',ok},
+     {'b@c100',ok},
+     {'c@c100',ok}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
    
-    true=rpc:call(N3,db_lock,is_leader,[controller_lock,'a@joq62-X550CA'],2000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
+    true=rpc:call(N3,db_lock,is_leader,[controller_lock,'a@c100'],2000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
     % kill N1
 
     slave:stop(N1),
     timer:sleep(300),
-    [{'b@joq62-X550CA',ok},
-     {'c@joq62-X550CA',ok}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-nodes()],
+    [{'b@c100',ok},
+     {'c@c100',ok}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-nodes()],
  %   timer:sleep(3000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
     
     %start N1 again
     HostId=net_adm:localhost(),
@@ -183,9 +185,9 @@ pass1()->
     ok=rpc:call(N1,application,start,[dbase_dist],5000),
     
 %    timer:sleep(2000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N1,db_lock,read_all_info,[],5000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
-    [{controller_lock,_,'a@joq62-X550CA'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N1,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N2,db_lock,read_all_info,[],5000),
+    [{controller_lock,_,'a@c100'}]=rpc:call(N3,db_lock,read_all_info,[],5000),
     
     ok.
 
@@ -210,40 +212,40 @@ single()->
     
     
 
-     [{'test@joq62-X550CA',{error,[mnesia_not_started]}},
-      {'a@joq62-X550CA',{error,[mnesia_not_started]}},
-      {'b@joq62-X550CA',{error,[mnesia_not_started]}},
-      {'c@joq62-X550CA',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
+     [{'test@c100',{error,[mnesia_not_started]}},
+      {'a@c100',{error,[mnesia_not_started]}},
+      {'b@c100',{error,[mnesia_not_started]}},
+      {'c@c100',{error,[mnesia_not_started]}}]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
     
     ok=init_distributed_mnesia(Nodes),
 
     []=dist_nodes(Nodes),
     
-    [{'test@joq62-X550CA',{error,[not_initiated,db_lock]}},
-     {'a@joq62-X550CA',{error,[not_initiated,db_lock]}},
-     {'b@joq62-X550CA',{error,[not_initiated,db_lock]}},
-     {'c@joq62-X550CA',{error,[not_initiated,db_lock]}}
+    [{'test@c100',{error,[not_initiated,db_lock]}},
+     {'a@c100',{error,[not_initiated,db_lock]}},
+     {'b@c100',{error,[not_initiated,db_lock]}},
+     {'c@c100',{error,[not_initiated,db_lock]}}
     ]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
     
     ok=lock(),
-    [{'test@joq62-X550CA',ok},
-     {'a@joq62-X550CA',ok},
-     {'b@joq62-X550CA',ok},
-     {'c@joq62-X550CA',ok}
+    [{'test@c100',ok},
+     {'a@c100',ok},
+     {'b@c100',ok},
+     {'c@c100',ok}
     ]=[{Node,rpc:call(Node,db_lock,check_init,[],2000)}||Node<-Nodes],
 
-    ['test@joq62-X550CA','a@joq62-X550CA',
-     'b@joq62-X550CA','c@joq62-X550CA']=dist_nodes(Nodes),
+    ['test@c100','a@c100',
+     'b@c100','c@c100']=dist_nodes(Nodes),
     ok=loose_restart_node(),    
   %  ok=db_lock:create_table(),
   %  {atomic,ok}=db_lock:create(leader,0),
-  %  [{leader,0,'test@joq62-X550CA'}]=db_lock:read_all_info(),
+  %  [{leader,0,'test@c100'}]=db_lock:read_all_info(),
   %  true=db_lock:is_open(leader,node()),
-  %  ['test@joq62-X550CA']=db_lock:leader(leader),
+  %  ['test@c100']=db_lock:leader(leader),
     
   %  true=db_lock:is_leader(leader,node()),
 	     
-  %  ['test@joq62-X550CA']=db_lock:leader(leader),
+  %  ['test@c100']=db_lock:leader(leader),
   %  timer:sleep(2500),
     
    % true=db_lock:is_open(leader,node1,2),
@@ -266,9 +268,9 @@ create_nodes()->
     Cookie=atom_to_list(erlang:get_cookie()),
     NodeInfo=[{NodeName,"-pa ebin -setcookie "++Cookie}||NodeName<-?NodeNames],
     SlaveStart=[slave:start(net_adm:localhost(),NodeName,Arg)||{NodeName,Arg}<-NodeInfo],
-    [{ok,'a@joq62-X550CA'},
-     {ok,'b@joq62-X550CA'},
-     {ok,'c@joq62-X550CA'}]=SlaveStart,
+    [{ok,'a@c100'},
+     {ok,'b@c100'},
+     {ok,'c@c100'}]=SlaveStart,
     Slaves=[Slave||{ok,Slave}<-SlaveStart],
    
     [pong,pong,pong]=[net_adm:ping(Slave)||Slave<-Slaves],
@@ -322,11 +324,11 @@ create_tables()->
 %% --------------------------------------------------------------------
 loose_restart_node()->
     HostId=net_adm:localhost(),    
-    KilledNode='a@joq62-X550CA',
+    KilledNode='a@c100',
     DistR1 =[{Node,rpc:call(Node,db_lock,read_all_info,[],5*1000)}||Node<-nodes()],
-    [{'a@joq62-X550CA',[{host_lock,_,'a@joq62-X550CA'}]},
-     {'b@joq62-X550CA',[{host_lock,_,'a@joq62-X550CA'}]},
-     {'c@joq62-X550CA',[{host_lock,_,'a@joq62-X550CA'}]}]=DistR1,
+    [{'a@c100',[{host_lock,_,'a@c100'}]},
+     {'b@c100',[{host_lock,_,'a@c100'}]},
+     {'c@c100',[{host_lock,_,'a@c100'}]}]=DistR1,
 
  %   {atomic,glok}=rpc:call(KilledNode,db_lock,create,[leader,0,KilledNode],5*1000),
 	
@@ -334,11 +336,11 @@ loose_restart_node()->
    % timer:sleep(100),
     pang=net_adm:ping(KilledNode),
     DistR2 =[{Node,rpc:call(Node,db_lock,read_all_info,[],5*1000)}||Node<-nodes()],
-    [{'b@joq62-X550CA',[{host_lock,_,'a@joq62-X550CA'}]},
-     {'c@joq62-X550CA',[{host_lock,_,'a@joq62-X550CA'}]}]=DistR2, 
+    [{'b@c100',[{host_lock,_,'a@c100'}]},
+     {'c@c100',[{host_lock,_,'a@c100'}]}]=DistR2, 
 
     timer:sleep(1200),
-    true=rpc:call('b@joq62-X550CA',db_lock,is_open,[host_lock,'b@joq62-X550CA',1],5*1000),    
+    true=rpc:call('b@c100',db_lock,is_open,[host_lock,'b@c100',1],5*1000),    
     %Leader checks if a node is absent
   
     MissingNodes=check_missing_nodes(),
@@ -360,11 +362,11 @@ loose_restart_node()->
     ok=rpc:call(Node1,db_lock,add_node,[KilledNode,ram_copies],2000),
 
     DistR3 =[{Node,rpc:call(Node,db_lock,read_all_info,[],5*1000)}||Node<-nodes()],
-    [{'b@joq62-X550CA',[{host_lock,_,'b@joq62-X550CA'}]},
-     {'c@joq62-X550CA',[{host_lock,_,'b@joq62-X550CA'}]},
-     {'a@joq62-X550CA',[{host_lock,_,'b@joq62-X550CA'}]}]=DistR3, 
+    [{'b@c100',[{host_lock,_,'b@c100'}]},
+     {'c@c100',[{host_lock,_,'b@c100'}]},
+     {'a@c100',[{host_lock,_,'b@c100'}]}]=DistR3, 
     
-    false=rpc:call('c@joq62-X550CA',db_lock,is_leader,[host_lock,'a@joq62-X550CA'],2000),
+    false=rpc:call('c@c100',db_lock,is_leader,[host_lock,'a@c100'],2000),
     ok. 
 
 check_missing_nodes()->
@@ -384,20 +386,20 @@ lock()->
     {atomic,ok}=db_lock:create(host_lock,1,node()),
   
     DistR1 =[{Node,rpc:call(Node,db_lock,read_all_info,[],5*1000)}||Node<-nodes()],
-     [{'a@joq62-X550CA',[{host_lock,1,'test@joq62-X550CA'}]},
-      {'b@joq62-X550CA',[{host_lock,1,'test@joq62-X550CA'}]},
-      {'c@joq62-X550CA',[{host_lock,1,'test@joq62-X550CA'}]}
+     [{'a@c100',[{host_lock,1,'test@c100'}]},
+      {'b@c100',[{host_lock,1,'test@c100'}]},
+      {'c@c100',[{host_lock,1,'test@c100'}]}
      ]=DistR1,
 
 
-    ['test@joq62-X550CA']=db_lock:leader(host_lock),
+    ['test@c100']=db_lock:leader(host_lock),
     timer:sleep(1200),
-    true=rpc:call('a@joq62-X550CA',db_lock,is_open,[host_lock,'a@joq62-X550CA'],5*1000),
+    true=rpc:call('a@c100',db_lock,is_open,[host_lock,'a@c100'],5*1000),
     false=db_lock:is_open(host_lock,node()),
     Lock1 =[{Node,rpc:call(Node,db_lock,leader,[host_lock],5*1000)}||Node<-nodes()],
-    [{'a@joq62-X550CA',['a@joq62-X550CA']},
-     {'b@joq62-X550CA',['a@joq62-X550CA']},
-     {'c@joq62-X550CA',['a@joq62-X550CA']}]=Lock1,
+    [{'a@c100',['a@c100']},
+     {'b@c100',['a@c100']},
+     {'c@c100',['a@c100']}]=Lock1,
     
 
     
