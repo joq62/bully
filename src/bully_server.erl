@@ -78,10 +78,10 @@ start_election()->
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-    io:format("bully 1 ~p~n",[{?MODULE,?LINE}]),
+%    io:format("bully 1 ~p~n",[{?MODULE,?LINE}]),
     bully:start_election(),
-    timer:sleep(?WAIT_FOR_ELECTION_RESPONSE_TIMEOUT+100),
-    io:format("bully 2 ~p~n",[{?MODULE,?LINE}]),
+    timer:sleep(?WAIT_FOR_ELECTION_RESPONSE_TIMEOUT+1000),
+ %   io:format("bully 2 ~p~n",[{?MODULE,?LINE}]),
     {ok, #state{nodes = [],
 		coordinator_node = node(), 
 		pid_timeout=no_pid}}.
@@ -222,7 +222,7 @@ start_election(State) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 win_election( State) ->
- %   io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
+    io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
  %   rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
     {ok,Nodes}=application:get_env(nodes),
     NodesLowerId=nodes_with_lower_ids(Nodes),
