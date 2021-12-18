@@ -17,6 +17,7 @@
 % -include("").
 %% --------------------------------------------------------------------
 -define(WAIT_FOR_ELECTION_RESPONSE_TIMEOUT,5*100).
+
 %% External exports
 -export([
 	 status/0,
@@ -122,7 +123,9 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_cast({election_message,CoordinatorNode}, State) ->
-    case CoordinatorNode<node() of
+%    io:format("CoordinatorNode ,node() , > ~p~n",[{CoordinatorNode,node(),CoordinatorNode > node(),
+%						   ?FUNCTION_NAME,?MODULE,?LINE}]),
+    case CoordinatorNode > node() of
 	false->% lost election
 	    NewState=State;
 	true->
@@ -208,11 +211,17 @@ code_change(_OldVsn, State, _Extra) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 start_election(State) ->
-    io:format("Election started by Node ~p~n",[{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
+ %   io:format("Election started by Node ~p~n",[{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
 %    rpc:cast(node(),db_logger,create,["log","election started",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
-    {ok,Nodes}=application:get_env(bully,nodes),
-    NodesHigherId=nodes_with_higher_ids(Nodes),
-    [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesHigherId],
+%    {ok,Nodes}=application:get_env(bully,nodes),   
+     Nodes=lib_bully:get_nodes(),
+%    NodesHigherId=nodes_with_higher_ids(Nodes),
+%    [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesHigherId],
+    NodesLowerId=nodes_with_lower_ids(Nodes),
+%    io:format("NodesLowerId ~p~n",[{NodesLowerId,node(),
+%				 ?MODULE,?FUNCTION_NAME,?LINE}]),
+%    [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
+    [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesLowerId],
     PidTimeout=spawn(fun()->election_timeout() end),
     State#state{pid_timeout=PidTimeout}.
 
@@ -222,11 +231,17 @@ start_election(State) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 win_election( State) ->
-    io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
+ %   io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
  %   rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
-    {ok,Nodes}=application:get_env(nodes),
-    NodesLowerId=nodes_with_lower_ids(Nodes),
-    [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
+%    {ok,Nodes}=application:get_env(bully,nodes),
+    Nodes=lib_bully:get_nodes(), 
+%   NodesLowerId=nodes_with_lower_ids(Nodes),
+%    [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesLowerId],
+    NodesHigherId=nodes_with_higher_ids(Nodes),
+ %   io:format("NodesHigherId ~p~n",[{NodesHigherId,node(),
+%				 ?MODULE,?FUNCTION_NAME,?LINE}]),
+%    [rpc:cast(Node,bully,election_message,[node()])||Node<-NodesHigherId],
+    [rpc:cast(Node,bully,coordinator_message,[node()])||Node<-NodesHigherId],
     set_coordinator(State, node()).
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -252,9 +267,11 @@ set_coordinator(State, CoordinatorNode) ->
 election_timeout()->
     receive
 	kill->
+%	    io:format("kill ~p~n",[{?FUNCTION_NAME,?MODULE,?LINE}]),
 	    ok
     after ?WAIT_FOR_ELECTION_RESPONSE_TIMEOUT->
 	    Pid=self(),
+%	    io:format("timeout ~p~n",[{?FUNCTION_NAME,?MODULE,?LINE}]),
 	    rpc:cast(node(),bully,election_timeout,[Pid])
     end.
 %% --------------------------------------------------------------------
@@ -263,7 +280,7 @@ election_timeout()->
 %% Returns: non
 %% --------------------------------------------------------------------
 nodes_with_higher_ids(Nodes) ->
-  [Node || Node <- Nodes, Node > node()].
+    [Node || Node <- Nodes, Node > node()].
 
 nodes_with_lower_ids(Nodes) ->
-  [Node || Node <- Nodes, Node < node()].
+    [Node || Node <- Nodes, Node < node()].

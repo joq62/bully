@@ -31,60 +31,15 @@ start()->
     ok=setup(),
     io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-    io:format("~p~n",[{"Start t1()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=t1(),
-    io:format("~p~n",[{"Stop t1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Start election_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=election_test:start(),
+    io:format("~p~n",[{"Stop election_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %    io:format("~p~n",[{"Start pass1()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass1(),
 %    io:format("~p~n",[{"Stop pass1()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start single()",?MODULE,?FUNCTION_NAME,?LINE}]),
- %   ok=single(),
- %   io:format("~p~n",[{"Stop single()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-   % io:format("~p~n",[{"Start cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
-   % ok=cluster(),
-   % io:format("~p~n",[{"Stop cluster()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-
-   % io:format("~p~n",[{"Start pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-  % ok=pod_spec(),
-  %  io:format("~p~n",[{"Stop pod_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
- %   io:format("~p~n",[{"Start pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
-  %  ok=pod(),
- %   io:format("~p~n",[{"Stop pod()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-  %  io:format("~p~n",[{"Start deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-  %  ok=deployment_spec(),
-  %  io:format("~p~n",[{"Stop deployment_spec()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-  %  io:format("~p~n",[{"Start deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
-   % ok=deployment(),
-  %  io:format("~p~n",[{"Stop deployment()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-  %  io:format("~p~n",[{"Start kubelet()",?MODULE,?FUNCTION_NAME,?LINE}]),
-  %  ok=kubelet(),
-  %  io:format("~p~n",[{"Stop kubelet",?MODULE,?FUNCTION_NAME,?LINE}]),
-
- %   io:format("~p~n",[{"Start cluster_info()",?MODULE,?FUNCTION_NAME,?LINE}]),
- %   ok=cluster_info(),
- %   io:format("~p~n",[{"Stop cluster_info",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-%    io:format("~p~n",[{"Start pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_3(),
-%    io:format("~p~n",[{"Stop pass_3()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-%    io:format("~p~n",[{"Start pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_4(),
-%    io:format("~p~n",[{"Stop pass_4()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
-%    io:format("~p~n",[{"Start pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_5(),
-%    io:format("~p~n",[{"Stop pass_5()",?MODULE,?FUNCTION_NAME,?LINE}]),
- 
-    
+   
    
       %% End application tests
     io:format("~p~n",[{"Start cleanup",?MODULE,?FUNCTION_NAME,?LINE}]),
@@ -434,21 +389,26 @@ pass_2()->
 
 setup()->
     HostId=net_adm:localhost(),
-    A="a@"++HostId,
-    NodeA=list_to_atom(A),
-    B="b@"++HostId,
-    NodeB=list_to_atom(B),
-    C="c@"++HostId,
-    NodeC=list_to_atom(C),    
+    U1=integer_to_list(erlang:system_time(microsecond)),
+    timer:sleep(3),
+    U2=integer_to_list(erlang:system_time(microsecond)),
+    timer:sleep(3),
+    U3=integer_to_list(erlang:system_time(microsecond)),
+ 
+    NodeA=list_to_atom(U1++"@"++HostId),
+    NodeB=list_to_atom(U2++"@"++HostId),
+    NodeC=list_to_atom(U3++"@"++HostId),    
     Nodes=[NodeA,NodeB,NodeC],
     [rpc:call(Node,init,stop,[])||Node<-Nodes],
     Cookie=atom_to_list(erlang:get_cookie()),
     Args="-pa ebin -setcookie "++Cookie,
     [{ok,NodeA},
      {ok,NodeB},
-     {ok,NodeC}]=[slave:start(HostId,NodeName,Args)||NodeName<-["a","b","c"]],
-    
-   ok.
+     {ok,NodeC}]=[slave:start(HostId,NodeName,Args)||NodeName<-[U1,U2,U3]],
+    [net_adm:ping(N)||N<-Nodes],
+    ok=application:start(sd),
+       
+    ok.
 
 
 %% --------------------------------------------------------------------
