@@ -231,7 +231,7 @@ start_election(State) ->
 %% Returns: non
 %% --------------------------------------------------------------------
 win_election( State) ->
-    io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
+ %   io:format("Node  won the election ~p~n", [{node(),?FUNCTION_NAME,?MODULE,?LINE}]),
  %   rpc:cast(node(),db_logger,create,["log","election winner",atom_to_list(node()),{?MODULE,?FUNCTION_NAME,?LINE}]),
 %    {ok,Nodes}=application:get_env(bully,nodes),
     Nodes=lib_bully:get_nodes(), 
