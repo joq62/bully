@@ -113,7 +113,7 @@ addnodes()->
 
 killnode()->
     Nodes=nodes(),
-    [N1,N2,N3]=Nodes,
+    [N1,_N2,N3]=Nodes,
   %  io:format("N1,N2,N3 ~p~n",[{N1,N2,N3,?MODULE,?FUNCTION_NAME,?LINE}]),
     Leader=rpc:call(N1,bully,who_is_leader,[],5*1000),
     
