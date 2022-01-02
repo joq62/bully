@@ -125,7 +125,9 @@ handle_call(Request, From, State) ->
 handle_cast({election_message,CoordinatorNode}, State) ->
 %    io:format("CoordinatorNode ,node() , > ~p~n",[{CoordinatorNode,node(),CoordinatorNode > node(),
 %						   ?FUNCTION_NAME,?MODULE,?LINE}]),
-    case CoordinatorNode > node() of
+    {CoordinatorNodeName,_}=misc_node:vmid_hostid(CoordinatorNode),
+    {NodeName,_}=misc_node:vmid_hostid(node()),
+    case CoordinatorNodeName > NodeName of
 	false->% lost election
 	    NewState=State;
 	true->
@@ -280,7 +282,14 @@ election_timeout()->
 %% Returns: non
 %% --------------------------------------------------------------------
 nodes_with_higher_ids(Nodes) ->
-    [Node || Node <- Nodes, Node > node()].
+    {NodeName,_}=misc_node:vmid_hostid(node()),
+    NodeNodeNameHostIds=[{Node,misc_node:vmid_hostid(Node)}||Node<-Nodes],
+    [Node || {Node, {XNodeName,_HostId}}<- NodeNodeNameHostIds,
+	     XNodeName > NodeName].
 
 nodes_with_lower_ids(Nodes) ->
-    [Node || Node <- Nodes, Node < node()].
+ {NodeName,_}=misc_node:vmid_hostid(node()),
+    NodeNodeNameHostIds=[{Node,misc_node:vmid_hostid(Node)}||Node<-Nodes],
+    [Node || {Node, {XNodeName,_HostId}}<- NodeNodeNameHostIds,
+	     XNodeName < NodeName].
+   % [Node || Node <- Nodes, Node < NodeName ].
